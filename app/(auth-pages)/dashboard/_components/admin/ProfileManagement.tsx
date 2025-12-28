@@ -4,6 +4,7 @@ import { User, Mail, Phone, Pencil, LogOut, Briefcase, Home, Lock, Upload, Calen
 import toast from "react-hot-toast";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/client-api";
 import PasswordGuidelines from "@/components/PasswordGuidelines";
 import ModernInfoCard from "@/components/profile/ModernInfoCard";
 import PasswordRow from "@/components/profile/PasswordRow";
