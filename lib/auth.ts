@@ -302,7 +302,8 @@ export const authOptions: AuthOptions = {
     updateAge: 5 * 60, // refresh token every 5 minutes of activity
   },
   jwt: {
-    maxAge: 15 * 60, // 15 minutes in seconds
+    maxAge: 15 * 60, // 15 minutes in seconds
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: true, // Enable debug mode for AWS logs
 };

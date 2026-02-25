@@ -12,6 +12,8 @@ const transporter = nodemailer.createTransport({
   },
   maxConnections: 3,
   maxMessages: 100,
+  connectionTimeout: 5000, // Important for AWS: fail fast if port 465 is blocked
+  socketTimeout: 5000,
   tls: {
     rejectUnauthorized: false,
     ciphers: "SSLv3"
