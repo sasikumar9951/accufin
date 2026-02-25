@@ -38,21 +38,21 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
   const [dialogCountdown, setDialogCountdown] = useState(0);
 
   // Check if current route is a protected route that should have session timeout
-  const isProtectedRoute = pathname?.startsWith('/dashboard') || 
-                          pathname?.startsWith('/forms') ||
-                          pathname?.startsWith('/api/') ||
-                          pathname === '/login' ||
-                          pathname === '/register' ||
-                          pathname === '/forgot-password' ||
-                          pathname === '/reset-password';
+  const isProtectedRoute = pathname?.startsWith('/dashboard') ||
+    pathname?.startsWith('/forms') ||
+    pathname?.startsWith('/api/') ||
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password';
 
   // Use environment variables for idle-based session management
-  // Warning shows after X minutes of inactivity
+  // Warning shows after X minutes of inactivity (default 10 mins)
   const WARNING_TIME =
-    Number(process.env.NEXT_PUBLIC_USER_SESSION_WARNING) * 60 * 1000;
-  // Session expires after Y minutes of inactivity  
+    Number(process.env.NEXT_PUBLIC_USER_SESSION_WARNING || 10) * 60 * 1000;
+  // Session expires after Y minutes of inactivity (default 15 mins)
   const SESSION_TIME =
-    Number(process.env.NEXT_PUBLIC_USER_SESSION_EXPIRY) * 60 * 1000;
+    Number(process.env.NEXT_PUBLIC_USER_SESSION_EXPIRY || 15) * 60 * 1000;
   // Extension dialog shows 1 minute before session expires
 
 
@@ -61,7 +61,7 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
       return;
     }
 
-  
+
     sessionState.isLoggingOut = true;
 
     // Clear all timers
@@ -95,24 +95,24 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
 
   const showWarning = useCallback(() => {
     const warningTimeMinutes = Math.floor(WARNING_TIME / (60 * 1000));
-    
+
     console.warn(`SessionTimeout: WARNING - Session will expire in ${warningTimeMinutes} minutes`);
-    
+
     // Calculate remaining time until logout (difference between warning and session time)
     const remainingTime = SESSION_TIME - WARNING_TIME; // Time between warning and logout
     const remainingSeconds = Math.floor(remainingTime / 1000);
-    
-    
+
+
     setShowWarningDialog(true);
     sessionState.extensionDialogOpen = true;
     setDialogCountdown(remainingSeconds);
-    
+
     // Start countdown for dialog
     sessionState.dialogCountdown = remainingSeconds;
     sessionState.dialogCountdownInterval = setInterval(() => {
       sessionState.dialogCountdown--;
       setDialogCountdown(sessionState.dialogCountdown);
-      
+
       if (sessionState.dialogCountdown <= 0) {
         if (sessionState.dialogCountdownInterval) {
           clearInterval(sessionState.dialogCountdownInterval);
@@ -121,15 +121,15 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
         logout();
       }
     }, 1000);
-    
+
     // Show appropriate time format in toast - show remaining time until logout
     const remainingMinutes = Math.floor(remainingSeconds / 60);
     const remainingSecondsOnly = remainingSeconds % 60;
-    
-    const toastMessage = remainingMinutes > 0 
+
+    const toastMessage = remainingMinutes > 0
       ? `Your session will expire in ${remainingMinutes} minutes ${remainingSecondsOnly} seconds.`
       : `Your session will expire in ${remainingSeconds} seconds.`;
-    
+
     toast.error(toastMessage, {
       duration: 6000,
       position: "top-center",
@@ -145,7 +145,7 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
         clearInterval(sessionState.dialogCountdownInterval);
         sessionState.dialogCountdownInterval = null;
       }
-      
+
       // Close dialog and reset state
       setShowWarningDialog(false);
       sessionState.extensionDialogOpen = false;
@@ -154,7 +154,7 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
 
     const now = Date.now();
     sessionState.lastActivity = now;
-    
+
     // Clear all existing timers
     if (sessionState.timeout) {
       clearTimeout(sessionState.timeout);
@@ -168,24 +168,24 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
       clearTimeout(sessionState.idleTimeout);
       sessionState.idleTimeout = null;
     }
-    
+
     // Reset idle state
     sessionState.isIdle = false;
     setShowWarningDialog(false);
     sessionState.extensionDialogOpen = false;
-    
+
     // Start new idle-based timers
-    
+
     // Set warning timer (after X minutes of inactivity)
     sessionState.warningTimeout = setTimeout(() => {
       showWarning();
     }, WARNING_TIME);
-    
+
     // Set session expiry timer (after Y minutes of inactivity)
     sessionState.timeout = setTimeout(() => {
       logout();
     }, SESSION_TIME);
-    
+
   }, [WARNING_TIME, SESSION_TIME, showWarning, logout]);
 
 
@@ -228,7 +228,7 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
 
     const events = [
       'mousedown',
-      'mousemove', 
+      'mousemove',
       'keypress',
       'scroll',
       'touchstart',
@@ -256,7 +256,7 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-   
+
       if (sessionState.timeout) {
         clearTimeout(sessionState.timeout);
         sessionState.timeout = null;
@@ -279,7 +279,7 @@ export function IdleTimeout({ children }: Readonly<IdleTimeoutProps>) {
   return (
     <>
       {children}
-      <Dialog open={showWarningDialog} onOpenChange={() => {}}>
+      <Dialog open={showWarningDialog} onOpenChange={() => { }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Session Warning</DialogTitle>
