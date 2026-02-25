@@ -216,8 +216,6 @@ function LoginForm() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
-
-  const [showWelcome, setShowWelcome] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState("");
   const [resendingOtp, setResendingOtp] = useState(false);
@@ -337,7 +335,6 @@ function LoginForm() {
     if (res?.error) {
       toast.error(res.error);
     } else {
-      setShowWelcome(true);
       toast.success("Login successful!");
       router.push("/dashboard");
     }
@@ -411,7 +408,6 @@ function LoginForm() {
         if (res?.error) {
           toast.error(res.error);
         } else {
-          setShowWelcome(true);
           toast.success("Login successful!");
           router.push("/dashboard");
         }
@@ -471,7 +467,6 @@ function LoginForm() {
         // Reset on error
         setTotpCode("");
       } else {
-        setShowWelcome(true);
         toast.success("Login successful!");
         router.push("/dashboard");
       }
@@ -526,7 +521,6 @@ function LoginForm() {
         toast.error(res.error);
         setBackupCode("");
       } else {
-        setShowWelcome(true);
         toast.success("Login successful!");
         if (data.remainingBackupCodes <= 2) {
           toast(
