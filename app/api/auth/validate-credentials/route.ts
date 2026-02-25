@@ -14,10 +14,12 @@ export async function POST(request: NextRequest) {
     }
     const cleanEmail = email.toLowerCase() as string;
     const user = await prisma.user.findFirst({
-      where: { email: {
-        equals: cleanEmail,
-        mode: "insensitive",
-      } },
+      where: {
+        email: {
+          equals: cleanEmail,
+          mode: "insensitive",
+        }
+      },
       select: {
         id: true,
         email: true,
@@ -42,6 +44,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!user.password) {
+      return NextResponse.json(
+        { error: "No password set for this account. Please use your provider (e.g., Google) or reset your password." },
+        { status: 401 }
+      );
+    }
+
     const isValid = await compare(password, user.password);
 
     if (!isValid) {
@@ -62,8 +71,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error in validate-credentials API:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: `Internal server error: ${errorMessage}` },
       { status: 500 }
     );
   }

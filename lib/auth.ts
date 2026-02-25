@@ -42,6 +42,10 @@ async function validateUserCredentials(email: string, password: string) {
     throw new Error("Your account is inactive. Please contact support.");
   }
 
+  if (!user.password) {
+    throw new Error("No password set for this account. Please use your provider (e.g., Google) or reset your password.");
+  }
+
   const isValid = await compare(password, user.password);
 
   if (!isValid) {
