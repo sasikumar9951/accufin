@@ -11,7 +11,7 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000, // Fail fast in 5s instead of hanging for 60s
 });
 
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaPg(pool as any);
 
 const prismaClientSingleton = () => {
   const client = new PrismaClient({
