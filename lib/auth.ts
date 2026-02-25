@@ -2,7 +2,6 @@ import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { AuthOptions } from "next-auth";
 import prisma from "./prisma";
-import { sendLoginConfirmationEmail } from "./email";
 import { verifyTotpToken, verifyBackupCode, cleanBackupCodeInput } from "./mfa";
 
 // Validate user credentials
@@ -178,7 +177,7 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user }) {
       if (user && (user as any).isActive === false) {
         return "/login?inactive=1";
       }
