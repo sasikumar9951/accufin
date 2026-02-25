@@ -2,7 +2,6 @@ import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { AuthOptions } from "next-auth";
 import prisma from "./prisma";
-import GoogleProvider from "next-auth/providers/google";
 import { sendLoginConfirmationEmail } from "./email";
 import { verifyTotpToken, verifyBackupCode, cleanBackupCodeInput } from "./mfa";
 
@@ -177,95 +176,11 @@ export const authOptions: AuthOptions = {
         return createUserReturnObject(user);
       },
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
   ],
   callbacks: {
     async signIn({ user, account }) {
-      //this is for google sign in
-      if (account?.provider === "google") {
-        let dbUser = await prisma.user.findFirst({
-          where: {
-            email: {
-              equals: user.email?.toLowerCase(),
-              mode: "insensitive",
-            },
-          },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            isAdmin: true,
-            isActive: true,
-            profileUrl: true,
-          },
-        });
-
-        if (!dbUser) {
-          dbUser = await prisma.user.create({
-            data: {
-              email: user.email?.toLowerCase(),
-              name: user.name || "",
-              isAdmin: false,
-              password: "",
-              provider: "google",
-              profileUrl:
-                user.image && user.image.startsWith("https://")
-                  ? user.image
-                  : null, // Validate Google profile image URL
-            },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              isAdmin: true,
-              isActive: true,
-              profileUrl: true,
-            },
-          });
-          try {
-            const loginTime = new Date().toLocaleString();
-            await sendLoginConfirmationEmail({
-              userName: user.name || "User",
-              userEmail: user.email,
-              loginTime,
-              loginMethod: "Google OAuth",
-            });
-          } catch (emailError) {
-            console.error(
-              "Error sending login confirmation email:",
-              emailError
-            );
-            // Don't fail login if email fails
-          }
-        } else {
-          // For existing Google users, update their profile image if it's not set and we have one from Google
-          if (
-            !dbUser.profileUrl &&
-            user.image &&
-            user.image.startsWith("https://")
-          ) {
-            await prisma.user.update({
-              where: { id: dbUser.id },
-              data: { profileUrl: user.image },
-            });
-            dbUser.profileUrl = user.image;
-          }
-        }
-
-        user.id = dbUser.id;
-        user.isAdmin = dbUser.isAdmin;
-        user.name = dbUser.name;
-        user.email = dbUser.email;
-        (user as any).profileUrl = dbUser.profileUrl;
-
-        if (dbUser.isActive === false) {
-          return "/login?inactive=1";
-        }
-
-        // Send login confirmation email for Google login
+      if (user && (user as any).isActive === false) {
+        return "/login?inactive=1";
       }
       return true;
     },

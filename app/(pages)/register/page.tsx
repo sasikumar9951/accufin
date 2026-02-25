@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { EyeClosedIcon, EyeIcon } from "lucide-react";
@@ -344,47 +344,7 @@ export default function RegisterPage() {
                 </div>
               </div> */}
 
-              <div className="mt-6">
-                {agreedToTerms ? (
-                  <button
-                    type="button"
-                    onClick={() => signIn("google")}
-                    className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
-                  >
-                    <img
-                      src="/google.svg"
-                      alt="Google"
-                      className="w-5 h-5 mr-2"
-                    />
-                    <span>Sign up with Google</span>
-                  </button>
-                ) : (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="block">
-                          <button
-                            type="button"
-                            disabled={true}
-                            aria-disabled="true"
-                            className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            <img
-                              src="/google.svg"
-                              alt="Google"
-                              className="w-5 h-5 mr-2"
-                            />
-                            <span>Sign up with Google</span>
-                          </button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Please agree to Terms & Conditions first.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-              </div>
+
             </div>
           </form>
 

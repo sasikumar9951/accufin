@@ -30,10 +30,10 @@ const LoadingSpinner = () => (
 );
 
 // Initial sign in button for unauthenticated users
-const InitialSignInButton = ({ 
-  agreedToTerms, 
-  handleGetOtpAndValidate, 
-  otpLoading 
+const InitialSignInButton = ({
+  agreedToTerms,
+  handleGetOtpAndValidate,
+  otpLoading
 }: {
   agreedToTerms: boolean;
   handleGetOtpAndValidate: () => void;
@@ -62,7 +62,7 @@ const InitialSignInButton = ({
       </TooltipProvider>
     );
   }
-  
+
   return (
     <button
       type="button"
@@ -76,13 +76,13 @@ const InitialSignInButton = ({
 };
 
 // TOTP verification buttons
-const TotpButtons = ({ 
-  showBackupCodeInput, 
-  handleVerifyBackupCode, 
-  handleVerifyTotp, 
-  loading, 
-  backupCode, 
-  totpCode 
+const TotpButtons = ({
+  showBackupCodeInput,
+  handleVerifyBackupCode,
+  handleVerifyTotp,
+  loading,
+  backupCode,
+  totpCode
 }: {
   showBackupCodeInput: boolean;
   handleVerifyBackupCode: () => void;
@@ -110,7 +110,7 @@ const TotpButtons = ({
       </button>
     );
   }
-  
+
   return (
     <button
       type="button"
@@ -131,21 +131,21 @@ const TotpButtons = ({
 };
 
 // Sign in button component to reduce complexity
-const SignInButton = ({ 
-  agreedToTerms, 
-  credentialsValidated, 
-  totpRequired, 
-  showBackupCodeInput, 
-  otpVerified, 
-  handleGetOtpAndValidate, 
-  handleVerifyBackupCode, 
-  handleVerifyTotp, 
+const SignInButton = ({
+  agreedToTerms,
+  credentialsValidated,
+  totpRequired,
+  showBackupCodeInput,
+  otpVerified,
+  handleGetOtpAndValidate,
+  handleVerifyBackupCode,
+  handleVerifyTotp,
   handleVerifyOtp,
-  otpLoading, 
-  loading, 
-  backupCode, 
-  totpCode, 
-  otp 
+  otpLoading,
+  loading,
+  backupCode,
+  totpCode,
+  otp
 }: {
   agreedToTerms: boolean;
   credentialsValidated: boolean;
@@ -208,69 +208,6 @@ const SignInButton = ({
   return null;
 };
 
-// Google sign in button component
-const GoogleSignInButton = ({ 
-  agreedToTerms, 
-  googleLoading, 
-  setGoogleLoading, 
-  signIn 
-}: {
-  agreedToTerms: boolean;
-  googleLoading: boolean;
-  setGoogleLoading: (loading: boolean) => void;
-  signIn: (provider: string) => void;
-}) => {
-  const handleGoogleSignIn = () => {
-    setGoogleLoading(true);
-    signIn("google");
-  };
-
-  if (!agreedToTerms) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="block">
-              <button
-                type="button"
-                disabled={true}
-                aria-disabled="true"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <img
-                  src="/google.svg"
-                  alt="Google"
-                  className="w-5 h-5 mr-2"
-                />
-                <span>Sign in with Google</span>
-              </button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Please agree to Terms & Conditions first.</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleGoogleSignIn}
-      disabled={googleLoading}
-      className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed"
-    >
-      <img
-        src="/google.svg"
-        alt="Google"
-        className="w-5 h-5 mr-2"
-      />
-      <span>Sign in with Google</span>
-    </button>
-  );
-};
-
 function LoginForm() {
   const [showTerms, setShowTerms] = useState(false);
   const [email, setEmail] = useState("");
@@ -279,7 +216,7 @@ function LoginForm() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState("");
@@ -340,7 +277,7 @@ function LoginForm() {
 
     if (mfaResponse.ok) {
       const mfaData = await mfaResponse.json();
-      
+
       // If TOTP enabled: require TOTP only (no email OTP)
       if (mfaData.mfaEnabled && mfaData.totpEnabled) {
         setTotpRequired(true);
@@ -362,7 +299,7 @@ function LoginForm() {
         return;
       }
     }
-    
+
     // Fallback: if MFA status couldn't be determined, send OTP
     await sendEmailOtp();
   };
@@ -642,19 +579,7 @@ function LoginForm() {
     }
   }, [session, router]);
 
-  // Handle Google login specifically
-  useEffect(() => {
-    const handleGoogleLogin = () => {
-      if (session?.user?.name && !showWelcome) {
-        setShowWelcome(true);
-        toast.success(`Welcome back, ${session.user.name}!`);
-      }
-    };
 
-    // Check for Google login after a delay
-    const timer = setTimeout(handleGoogleLogin, 1500);
-    return () => clearTimeout(timer);
-  }, [session, showWelcome]);
 
   const toggleTerms = () => {
     setShowTerms(!showTerms);
@@ -950,14 +875,7 @@ function LoginForm() {
                 </div>
               )}
             </div>
-            <div className="mt-4">
-              <GoogleSignInButton
-                agreedToTerms={agreedToTerms}
-                googleLoading={googleLoading}
-                setGoogleLoading={setGoogleLoading}
-                signIn={signIn}
-              />
-            </div>
+
           </form>
 
           <div className="mt-6">
