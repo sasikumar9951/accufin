@@ -2,7 +2,7 @@ import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { AuthOptions } from "next-auth";
 import prisma from "./prisma";
-import { verifyTotpToken, verifyBackupCode, cleanBackupCodeInput } from "./mfa";
+// MFA features removed (all MFA-related code has been deleted)
 
 // Validate user credentials
 async function validateUserCredentials(email: string, password: string) {
@@ -22,13 +22,7 @@ async function validateUserCredentials(email: string, password: string) {
       isAdmin: true,
       isActive: true,
       password: true,
-      mfaEnabled: true,
-      preferredMfaMethod: true,
-      totpEnabled: true,
-      totpSecret: true,
-      smsEnabled: true,
-      emailMfaEnabled: true,
-      contactNumber: true,
+      // MFA fields removed
     },
   });
 
@@ -66,82 +60,12 @@ function createUserReturnObject(user: any) {
 }
 
 // Verify and use backup code
-async function verifyAndUseBackupCode(userId: string, backupCode: string) {
-  const cleanCode = cleanBackupCodeInput(backupCode);
-
-  const backupCodes = await prisma.mfaBackupCode.findMany({
-    where: {
-      userId: userId,
-      used: false,
-    },
-  });
-
-  let validBackupCode = null;
-  for (const code of backupCodes) {
-    const isValid = await verifyBackupCode(cleanCode, code.hashedCode);
-    if (isValid) {
-      validBackupCode = code;
-      break;
-    }
-  }
-
-  if (!validBackupCode) {
-    throw new Error("Invalid backup code");
-  }
-
-  await prisma.mfaBackupCode.update({
-    where: { id: validBackupCode.id },
-    data: {
-      used: true,
-      usedAt: new Date(),
-    },
-  });
-}
 
 // Verify TOTP authentication
-function verifyTotpAuthentication(user: any, otp: string | undefined) {
-  if (!otp) {
-    throw new Error("Authenticator code required");
-  }
-
-  if (!user.totpSecret) {
-    throw new Error("TOTP not properly configured");
-  }
-
-  const isValidTotp = verifyTotpToken(otp, user.totpSecret);
-  if (!isValidTotp) {
-    throw new Error("Invalid authenticator code");
-  }
-}
 
 // Verify email MFA authentication
-function verifyEmailMfa(otpVerified: string | undefined) {
-  if (otpVerified !== "true") {
-    throw new Error("Email verification required");
-  }
-}
 
 // Handle MFA verification
-async function handleMfaVerification(user: any, credentials: any) {
-  if (!user.mfaEnabled) {
-    return; // No MFA required
-  }
-
-  // Check if backup code is being used
-  if (credentials.backupCode) {
-    await verifyAndUseBackupCode(user.id, credentials.backupCode);
-    return;
-  }
-
-  // Check which MFA method is enabled
-  if (user.totpEnabled) {
-    verifyTotpAuthentication(user, credentials.otp);
-  } else if (user.emailMfaEnabled) {
-    verifyEmailMfa(credentials.otpVerified);
-  } else {
-    throw new Error("No valid MFA method available");
-  }
-}
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -152,9 +76,6 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" },
         otp: { label: "OTP", type: "text" },
         otpVerified: { label: "OTP Verified", type: "text" },
-        mfaMethod: { label: "MFA Method", type: "text" },
-        backupCode: { label: "Backup Code", type: "text" },
-        backupCodeVerified: { label: "Backup Code Verified", type: "text" },
       },
       async authorize(credentials) {
         //login
@@ -167,13 +88,7 @@ export const authOptions: AuthOptions = {
           credentials.password
         );
 
-        // If backup code was already verified by API, allow login and skip all MFA
-        if (credentials.backupCodeVerified === "true") {
-          return createUserReturnObject(user);
-        }
 
-        // Handle MFA verification
-        await handleMfaVerification(user, credentials);
 
         // If all verifications pass, proceed with login
         return createUserReturnObject(user);

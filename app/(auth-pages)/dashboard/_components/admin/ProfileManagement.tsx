@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { s3 } from "@/lib/s3";
-import MfaSetup from "@/app/_component/MfaSetup";
+
 import { Loader } from "@/components/ui/loader";
 import { ImageFitMode, isValidImageFitMode } from "@/types/ui";
 
@@ -54,63 +54,7 @@ const validatePasswordFields = (passwordValues: any) => {
   return true;
 };
 
-const sendOtpForPasswordChange = async (profile: any, passwordValues: any, setSendingOtp: any, setOtpSent: any) => {
-  setSendingOtp(true);
-  try {
-    const res = await fetch("/api/auth/send-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: profile?.email,
-        purpose: "password-change",
-        currentPassword: passwordValues.currentPassword,
-        newPassword: passwordValues.newPassword,
-      }),
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Failed to send OTP");
-    }
-    setOtpSent(true);
-    toast.success("OTP sent to your email. Please enter the code below and click Confirm.");
-  } catch (err: any) {
-    toast.error(err.message || "Failed to send OTP");
-  } finally {
-    setSendingOtp(false);
-  }
-};
 
-const changePasswordWithOtp = async (passwordValues: any, setPasswordSaving: any, setPasswordValues: any, setShowPassword: any, setOtpSent: any) => {
-  setPasswordSaving(true);
-  try {
-    const res = await fetch("/api/user/change-password-with-otp", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        currentPassword: passwordValues.currentPassword,
-        newPassword: passwordValues.newPassword,
-        otp: passwordValues.otp,
-      }),
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Failed to change password");
-    }
-    toast.success("Password changed successfully!");
-    setPasswordValues({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-      otp: "",
-    });
-    setShowPassword(false);
-    setOtpSent(false);
-  } catch (err: any) {
-    toast.error(err.message || "An unexpected error occurred");
-  } finally {
-    setPasswordSaving(false);
-  }
-};
 
 // Helper function for profile image upload
 const uploadProfileImage = async (
@@ -231,11 +175,9 @@ const handleCancelImageUpload = (
 // Helper function for password form reset
 const resetPasswordForm = (
   setShowPassword: any,
-  setOtpSent: any,
   setPasswordValues: any
 ) => {
   setShowPassword(false);
-  setOtpSent(false);
   setPasswordValues({
     currentPassword: "",
     newPassword: "",
@@ -405,8 +347,6 @@ export default function ProfileManagement() {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordHelp, setShowPasswordHelp] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImageUploading, setProfileImageUploading] = useState(false);
@@ -511,23 +451,26 @@ export default function ProfileManagement() {
   };
 
   const handleSavePassword = async () => {
-    // Step 1: Validate password fields
     if (!validatePasswordFields(passwordValues)) return;
-
-    // Step 2: If OTP not sent yet, send OTP
-    if (!otpSent) {
-      await sendOtpForPasswordChange(profile, passwordValues, setSendingOtp, setOtpSent);
-      return;
+    setPasswordSaving(true);
+    try {
+      const res = await fetch("/api/user/change-password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passwordValues.currentPassword,
+          newPassword: passwordValues.newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to change password");
+      toast.success(data.message || "Password updated successfully");
+      resetPasswordForm(setShowPassword, setPasswordValues);
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred");
+    } finally {
+      setPasswordSaving(false);
     }
-
-    // Step 3: If OTP sent but not entered, show error
-    if (otpSent && !passwordValues.otp) {
-      toast.error("Please enter the OTP code");
-      return;
-    }
-
-    // Step 4: Change password with OTP
-    await changePasswordWithOtp(passwordValues, setPasswordSaving, setPasswordValues, setShowPassword, setOtpSent);
   };
 
   const handleProfileImageUpload = async () => {
@@ -906,58 +849,23 @@ export default function ProfileManagement() {
                   name="confirmPassword"
                   value={passwordValues.confirmPassword}
                   onChange={handlePasswordInputChange}
-                  isSaving={passwordSaving || sendingOtp}
+                  isSaving={passwordSaving}
                 />
-                
-                {/* OTP Section - only show after OTP is sent */}
-                {otpSent && (
-                  <div className="border-t pt-6">
-                    <div className="text-sm font-medium text-gray-700 mb-4">
-                      Enter Verification Code
-                    </div>
-                    <div className="text-sm text-gray-600 mb-4">
-                      We've sent a 6-digit code to {profile?.email}
-                    </div>
-                    <div className="space-y-4">
-                      <input
-                        type="text"
-                        name="otp"
-                        placeholder="Enter 6-digit code"
-                        value={passwordValues.otp}
-                        onChange={handlePasswordInputChange}
-                        disabled={passwordSaving}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-center text-lg tracking-widest"
-                        maxLength={6}
-                      />
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex justify-end space-x-3">
                   <Button
                     variant="outline"
-                    onClick={() => resetPasswordForm(setShowPassword, setOtpSent, setPasswordValues)}
-                    disabled={passwordSaving || sendingOtp}
+                    onClick={() => resetPasswordForm(setShowPassword, setPasswordValues)}
+                    disabled={passwordSaving}
                   >
                     Cancel
                   </Button>
-                  {otpSent ? (
-                    <Button
-                      onClick={handleSavePassword}
-                      disabled={passwordSaving || !passwordValues.otp}
-                      className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
-                    >
-                      {passwordSaving ? "Confirming..." : "Confirm"}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleSavePassword}
-                      disabled={passwordSaving || sendingOtp || !passwordValues.currentPassword || !passwordValues.newPassword || !passwordValues.confirmPassword}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-                    >
-                      {sendingOtp ? "Sending OTP..." : "Save Password"}
-                    </Button>
-                  )}
+                  <Button
+                    onClick={handleSavePassword}
+                    disabled={passwordSaving || !passwordValues.currentPassword || !passwordValues.newPassword || !passwordValues.confirmPassword}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                  >
+                    {passwordSaving ? "Saving..." : "Save Password"}
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -984,20 +892,7 @@ export default function ProfileManagement() {
           </div>
         )}
 
-        {/* MFA Section (only for non-Google sign-in) */}
-        {isCredentialProvider && (
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-            <div className="flex items-center mb-6">
-              <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center mr-3">
-                <Lock className="w-5 h-5 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Multi-Factor Authentication (MFA)
-              </h2>
-            </div>
-            <MfaSetup />
-          </div>
-        )}
+
 
         {/* Sign Out Button */}
         <div className="text-center">

@@ -34,9 +34,6 @@ export async function POST(req: NextRequest) {
         isAdmin: false,
         name: name + " " + lastName,
         contactNumber,
-        mfaEnabled: true,
-        emailMfaEnabled: true,
-        preferredMfaMethod: "email",
       },
       select: {
         id: true,

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { sendStorageThresholdEmail } from "@/lib/email";
 
 function formatReadableSize(kb: number): string {
   if (kb >= 1024 * 1024) return `${(kb / (1024 * 1024)).toFixed(2)} GB`;
@@ -50,58 +49,21 @@ async function createUserNotification(
   });
 }
 
-// Send email notification to user
-async function sendEmailNotification(
-  email: string,
-  name: string | null,
-  percent: number,
-  storageUsed: number,
-  maxStorageLimit: number
-): Promise<void> {
-  await sendStorageThresholdEmail({
-    userEmail: email,
-    userName: name || undefined,
-    percent,
-    usedKB: storageUsed,
-    limitKB: maxStorageLimit,
-  });
-}
+async function processUserStorageThreshold(user: any, admins: any[]) {
+  const threshold = calculateStorageThreshold(user.storageUsed, user.maxStorageLimit);
+  if (!threshold.shouldNotify) return null;
 
-// Process storage threshold notification for a single user
-async function processUserStorageThreshold(
-  user: { id: string; email: string | null; name: string | null; storageUsed: number; maxStorageLimit: number | null },
-  admins: { id: string }[]
-): Promise<{ id: string; email: string | null; percent: number } | null> {
-  const { storageUsed, maxStorageLimit } = user;
-  
-  if (!maxStorageLimit || maxStorageLimit <= 0) {
-    return null;
-  }
-  
-  const threshold = calculateStorageThreshold(storageUsed, maxStorageLimit);
-  
-  if (!threshold.shouldNotify) {
-    return null;
-  }
-  
-  const notifyTitle = threshold.is100 ? "Storage Full" : "High Storage Usage";
-  const usedReadable = formatReadableSize(storageUsed);
-  const limitReadable = formatReadableSize(maxStorageLimit);
-  
-  // Admin notifications
-  const adminMessage = `User ${user.name || "User"} is at ${threshold.percentInt}% storage (${usedReadable} of ${limitReadable}).`;
+  const usedReadable = formatReadableSize(user.storageUsed);
+  const limitReadable = formatReadableSize(user.maxStorageLimit);
+  const notifyTitle = threshold.is100 ? "Storage Full" : "Storage Almost Full";
+
+  // Admin notification
+  const adminMessage = `User ${user.email || user.name} has used ${threshold.percentInt}% of their storage (${usedReadable} of ${limitReadable}).`;
   await createAdminNotifications(admins, notifyTitle, adminMessage);
-  
+
   // User notification
-  const userMessage = threshold.is100
-    ? `You've reached your storage limit (${usedReadable} of ${limitReadable}). New uploads may fail until you free space or upgrade.`
-    : `You're at ${threshold.percentInt}% of your storage limit (${usedReadable} of ${limitReadable}). Consider freeing space`;
+  const userMessage = `You have used ${threshold.percentInt}% of your storage (${usedReadable} of ${limitReadable}).`;
   await createUserNotification(user.id, notifyTitle, userMessage);
-  
-  // Email notification
-  if (user.email) {
-    await sendEmailNotification(user.email, user.name, threshold.percentInt, storageUsed, maxStorageLimit);
-  }
   
   return { id: user.id, email: user.email, percent: threshold.percentInt };
 }

@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import {
-  sendPermanentDeletionEmailToUser,
-  sendPermanentDeletionEmailToAdmin,
-  sendPermanentDeletionEmailToSpecificAdmin,
-} from "@/lib/email";
+// import { sendPermanentDeletionEmailToUser, sendPermanentDeletionEmailToAdmin, sendPermanentDeletionEmailToSpecificAdmin } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -35,14 +31,7 @@ export async function POST(request: Request) {
 
     const purged: Array<{ id: string; email: string | null }> = [];
 
-    // Pre-fetch admin recipients
-    const admins = await prisma.user.findMany({
-      where: { isAdmin: true },
-      select: { email: true },
-    });
-    const adminEmails = admins
-      .map((a) => a.email)
-      .filter((e): e is string => !!e);
+
 
     for (const user of users) {
       try {
@@ -58,30 +47,7 @@ export async function POST(request: Request) {
           const text = await res.text();
           throw new Error(`Delete API failed: ${res.status} ${text}`);
         }
-        if (user.email) {
-          await sendPermanentDeletionEmailToUser({
-            userEmail: user.email,
-            userName: user.name || undefined,
-          });
-        }
-        // Notify all admins
-        if (adminEmails.length > 0) {
-          await Promise.all(
-            adminEmails.map((adminEmail) =>
-              sendPermanentDeletionEmailToSpecificAdmin({
-                adminEmail,
-                userEmail: user.email || undefined,
-                userName: user.name || undefined,
-              })
-            )
-          );
-        } else {
-          // Fallback to single admin email env
-          await sendPermanentDeletionEmailToAdmin({
-            userEmail: user.email || undefined,
-            userName: user.name || undefined,
-          });
-        }
+        // Email sending has been removed
 
         purged.push({ id: user.id, email: user.email });
       } catch (err) {

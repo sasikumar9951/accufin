@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { sendStorageThresholdEmail } from "@/lib/email";
 
 function parseSizeToKB(size: string | null | undefined): number {
   if (!size) return 0;
@@ -105,7 +104,6 @@ async function sendStorageNotifications(params: {
     incKB,
     maxStorageLimit,
     userEmail,
-    userName,
     sessionUserName,
     sessionUserEmail,
     adminIds,
@@ -141,16 +139,7 @@ async function sendStorageNotifications(params: {
       },
     });
 
-    // Send email
-    if (userEmail) {
-      await sendStorageThresholdEmail({
-        userEmail,
-        userName: userName || undefined,
-        percent: Math.min(percentToReport, 100),
-        usedKB: prevStorageUsed + incKB,
-        limitKB: maxStorageLimit,
-      });
-    }
+    // Email sending removed
   }
 }
 

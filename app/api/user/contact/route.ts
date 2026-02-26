@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendContactFormEmail } from "@/lib/email";
 import { z } from "zod";
 
 export async function POST(request: NextRequest) {
@@ -24,35 +23,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, subject, message } = parsed.data;
 
-    // Get current timestamp
-    const submittedAt = new Date().toLocaleString("en-US", {
-      timeZone: "America/Vancouver",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
 
-    // Send email to admin
-    const emailResult = await sendContactFormEmail({
-      name,
-      email,
-      subject,
-      message,
-      submittedAt,
-    });
 
-    if (!emailResult.success) {
-      console.error("Failed to send contact form email:", emailResult.error);
-      return NextResponse.json(
-        { error: "Failed to send message. Please try again later." },
-        { status: 500 }
-      );
-    }
 
     return NextResponse.json(
       { message: "Message sent successfully!" },

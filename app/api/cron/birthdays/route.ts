@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { sendBirthdayWishEmail } from "@/lib/email";
 
 // GET/POST: find all users whose birthday is today (month/day) and send email
 export async function POST(req: NextRequest) {
@@ -42,11 +41,7 @@ export async function POST(req: NextRequest) {
 
     for (const user of birthdayUsers) {
       if (!user.email) continue;
-      const res = await sendBirthdayWishEmail({
-        userEmail: user.email,
-        userName: user.name || undefined,
-      });
-      results.push({ id: user.id, email: user.email, success: !!res.success });
+      results.push({ id: user.id, email: user.email, success: false }); // Email sending removed
     }
 
     return NextResponse.json({

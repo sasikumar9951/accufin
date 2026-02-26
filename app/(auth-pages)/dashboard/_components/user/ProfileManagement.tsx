@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import PasswordGuidelines from "@/components/PasswordGuidelines";
 import ModernInfoCard from "@/components/profile/ModernInfoCard";
 import PasswordRow from "@/components/profile/PasswordRow";
-import MfaSetup from "@/app/_component/MfaSetup";
 import { validatePasswordStrength } from "@/lib/password";
 import {
   AlertDialog,
@@ -445,8 +444,6 @@ export default function ProfileManagement() {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordHelp, setShowPasswordHelp] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImageUploading, setProfileImageUploading] = useState(false);
@@ -599,41 +596,7 @@ export default function ProfileManagement() {
     setPasswordValues((prev) => ({ ...prev, [name]: value }));
   };
 
-  const sendPasswordOtpHandler = async () => {
-    await passwordOps.sendPasswordOtp(profile, passwordValues, setSendingOtp, setOtpSent);
-  };
 
-  const changePasswordWithOtp = async () => {
-    setPasswordSaving(true);
-    try {
-      const res = await fetch("/api/user/change-password-with-otp", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword: passwordValues.currentPassword,
-          newPassword: passwordValues.newPassword,
-          otp: passwordValues.otp,
-        }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to change password");
-      }
-      toast.success("Password changed successfully!");
-      setPasswordValues({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-        otp: "",
-      });
-      setShowPassword(false);
-      setOtpSent(false);
-    } catch (err: any) {
-      toast.error(err.message || "An unexpected error occurred");
-    } finally {
-      setPasswordSaving(false);
-    }
-  };
 
   const resetPasswordForm = () => {
     setPasswordValues({
@@ -643,23 +606,30 @@ export default function ProfileManagement() {
       otp: "",
     });
     setShowPassword(false);
-    setOtpSent(false);
   };
 
   const handleSavePassword = async () => {
     if (!passwordOps.validatePasswordInputs(passwordValues)) return;
-
-    if (!otpSent) {
-      await sendPasswordOtpHandler();
-      return;
+    setPasswordSaving(true);
+    try {
+      const res = await fetch("/api/user/change-password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: passwordValues.currentPassword,
+          newPassword: passwordValues.newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to change password");
+      
+      toast.success(data.message || "Password updated successfully");
+      resetPasswordForm();
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred");
+    } finally {
+      setPasswordSaving(false);
     }
-
-    if (!passwordValues.otp) {
-      toast.error("Please enter the OTP code");
-      return;
-    }
-
-    await changePasswordWithOtp();
   };
 
 
@@ -1086,8 +1056,6 @@ export default function ProfileManagement() {
         </div>
 
         {profile?.provider === "credentials" && (
-          <>
-            {/* Security Section */}
             <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
               <SectionHeader icon={Lock} gradient="from-gray-600 to-gray-800" title="Security" />
 
@@ -1118,64 +1086,29 @@ export default function ProfileManagement() {
                     name="confirmPassword"
                     value={passwordValues.confirmPassword}
                     onChange={handlePasswordInputChange}
-                    isSaving={passwordSaving || sendingOtp}
+                    isSaving={passwordSaving}
                   />
-
-                  {/* OTP Section - only show after OTP is sent */}
-                  {otpSent && (
-                    <div className="border-t pt-6">
-                      <div className="text-sm font-medium text-gray-700 mb-4">
-                        Enter Verification Code
-                      </div>
-                      <div className="text-sm text-gray-600 mb-4">
-                        We've sent a 6-digit code to {profile?.email}
-                      </div>
-                      <div className="space-y-4">
-                        <input
-                          type="text"
-                          name="otp"
-                          placeholder="Enter 6-digit code"
-                          value={passwordValues.otp}
-                          onChange={handlePasswordInputChange}
-                          disabled={passwordSaving}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 text-center text-lg tracking-widest"
-                          maxLength={6}
-                        />
-                      </div>
-                    </div>
-                  )}
 
                   <div className="flex justify-end space-x-3">
                     <Button
                       variant="outline"
                       onClick={resetPasswordForm}
-                      disabled={passwordSaving || sendingOtp}
+                      disabled={passwordSaving}
                     >
                       Cancel
                     </Button>
-                    {otpSent ? (
-                      <Button
-                        onClick={handleSavePassword}
-                        disabled={passwordSaving || !passwordValues.otp}
-                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
-                      >
-                        {passwordSaving ? "Confirming..." : "Confirm"}
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={handleSavePassword}
-                        disabled={
-                          passwordSaving ||
-                          sendingOtp ||
-                          !passwordValues.currentPassword ||
-                          !passwordValues.newPassword ||
-                          !passwordValues.confirmPassword
-                        }
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-                      >
-                        {sendingOtp ? "Sending OTP..." : "Save Password"}
-                      </Button>
-                    )}
+                    <Button
+                      onClick={handleSavePassword}
+                      disabled={
+                        passwordSaving ||
+                        !passwordValues.currentPassword ||
+                        !passwordValues.newPassword ||
+                        !passwordValues.confirmPassword
+                      }
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                    >
+                      {passwordSaving ? "Saving..." : "Save Password"}
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -1203,11 +1136,7 @@ export default function ProfileManagement() {
               )}
             </div>
 
-            {/* MFA Section */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-              <MfaSetup />
-            </div>
-          </>
+
         )}
 
         {/* Sign Out Button */}

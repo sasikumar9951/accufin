@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { sendStorageThresholdEmail } from "@/lib/email";
+// import { sendStorageThresholdEmail } from "@/lib/email";
 
 function parseSizeToKB(size: string | null | undefined): number {
   if (!size) return 0;
@@ -107,15 +107,6 @@ async function handleStorageThresholds(
     await createUserNotification(userId, notifyTitle, userMessage);
 
     // Email notification
-    if (user.email) {
-      await sendStorageThresholdEmail({
-        userEmail: user.email,
-        userName: user.name || undefined,
-        percent: triggered100 ? 100 : 90,
-        usedKB: roundedKB,
-        limitKB: user.maxStorageLimit,
-      });
-    }
   }
 
   return { triggered90, triggered100 };
